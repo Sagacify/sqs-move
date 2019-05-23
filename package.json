@@ -1,0 +1,63 @@
+{
+  "name": "sqs-move",
+  "version": "1.0.0",
+  "description": "Moving SQS messages with ease",
+  "main": "src/index.js",
+  "scripts": {
+    "format": "semistandard --fix",
+    "test:spec": "NODE_ENV=test mocha --recursive --timeout 5000",
+    "test:lint": "semistandard --verbose | snazzy",
+    "test:cover": "nyc --reporter=lcov --reporter=text-lcov npm run test:spec",
+    "test:coveralls": "nyc --reporter=text-lcov npm run test:spec | coveralls",
+    "test": "npm run test:lint && npm run test:cover"
+  },
+  "author": "@oliviercuyp",
+  "contributors": [
+    "François Beuvens <francois@sagacify.com>",
+    "Nicolas Vrielynck <nicolas@sagacify.com>",
+    "Quentin Gusbin <quentin@sagacify.com>"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=7.10"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Sagacify/sqs-move.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Sagacify/sqs-move/issues"
+  },
+  "homepage": "https://github.com/Sagacify/sqs-move#readme",
+  "keywords": [
+    "AWS",
+    "SQS",
+    "queues",
+    "move",
+    "moving",
+    "messages"
+  ],
+  "dependencies": {},
+  "devDependencies": {
+    "aws-sdk": "^2.461.0",
+    "aws-sdk-mock": "^4.4.0",
+    "chai": "^4.2.0",
+    "coveralls": "^3.0.3",
+    "mocha": "^6.1.4",
+    "nyc": "^14.1.1",
+    "semistandard": "^13.0.1",
+    "sinon": "^7.3.2",
+    "snazzy": "^8.0.0"
+  },
+  "semistandard": {
+    "env": {
+      "node": true,
+      "mocha": true
+    }
+  },
+  "nyc": {
+    "include": [
+      "src/**/*.js"
+    ]
+  }
+}
