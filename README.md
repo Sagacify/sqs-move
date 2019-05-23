@@ -1,5 +1,6 @@
 # SQS-Move
 
+[![CircleCI](https://circleci.com/gh/Sagacify/sqs-move/tree/master.svg?style=svg)](https://circleci.com/gh/Sagacify/sqs-move/tree/master)
 [![Coverage Status](https://coveralls.io/repos/github/Sagacify/sqs-move/badge.svg?branch=master)](https://coveralls.io/github/Sagacify/sqs-move?branch=master)
 
 Moving SQS messages with ease.
