@@ -2,7 +2,8 @@ const move = async (sqsInstance, fromQueueUrl, toQueueUrl, batchSize = 1) => {
   const receiveOptions = {
     QueueUrl: fromQueueUrl,
     MaxNumberOfMessages: batchSize,
-    WaitTimeSeconds: batchSize * 10 // 10 sec per message to move
+    VisibilityTimeout: batchSize * 5, // 5 sec per message to process
+    WaitTimeSeconds: 0 // Avoid infinite loop
   };
 
   const response = await sqsInstance.receiveMessage(receiveOptions)

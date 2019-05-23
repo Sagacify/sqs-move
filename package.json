@@ -7,7 +7,7 @@
     "format": "semistandard --fix",
     "test:spec": "NODE_ENV=test mocha --recursive --timeout 5000",
     "test:lint": "semistandard --verbose | snazzy",
-    "test:cover": "nyc --reporter=lcov --reporter=text-lcov npm run test:spec",
+    "test:cover": "nyc --reporter=text-summary --reporter=html npm run test:spec",
     "test:coveralls": "nyc --reporter=text-lcov npm run test:spec | coveralls",
     "test": "npm run test:lint && npm run test:cover"
   },
