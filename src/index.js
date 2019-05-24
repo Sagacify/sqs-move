@@ -6,6 +6,15 @@ const move = async (sqsInstance, fromQueueUrl, toQueueUrl, batchSize = 1) => {
     WaitTimeSeconds: 0 // Avoid infinite loop
   };
 
+  // Need to check, undefined could work if sqsInstance has default queue
+  if (!fromQueueUrl) {
+    throw new Error('Parameter fromQueueUrl is required');
+  }
+
+  if (!toQueueUrl) {
+    throw new Error('Parameter toQueueUrl is required');
+  }
+
   const response = await sqsInstance.receiveMessage(receiveOptions)
     .promise();
   if (!response.Messages) {
