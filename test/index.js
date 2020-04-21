@@ -1,50 +1,74 @@
-const AWS = require('aws-sdk');
 const awsMock = require('aws-sdk-mock');
+const sqsMock = require('./mocks/sqs');
 const { expect } = require('chai');
 const sinon = require('sinon');
 const sqsMove = require('../src');
 
+const { fakeTextMessages, fakeJsonMessages } = require('./mocks/sqsMessages');
+const fakeFromQueueUrl = 'https://sqs.eu-west-1.amazonaws.com/123456789012/some-dead-letter-queue';
+const fakeToQueueUrl = 'https://sqs.eu-west-1.amazonaws.com/123456789012/some-original-queue';
+
 describe('SQS Move', () => {
-  after(() => {
+  afterEach(() => {
     awsMock.restore('SQS');
   });
 
   it('should move message from queue to queue', async () => {
-    let receiveCounter = 0;
-    awsMock.mock('SQS', 'receiveMessage', (_params, callback) => {
-      receiveCounter++;
-
-      if (receiveCounter > 1) {
-        // Simulate empty queue
-        callback(null, { ResponseMetadata: { RequestId: 'r2' } });
-      }
-      callback(null, {
-        ResponseMetadata: { RequestId: 'r1' },
-        Messages: [{
-          MessageId: 123,
-          ReceiptHandle: 'abc',
-          Body: 'here is my message'
-        }]
-      });
-    });
-
     const sendMessageSpy = sinon.spy((params, callback) =>
       callback(null, { MessageId: 123 }));
     const deleteMessageSpy = sinon.spy((params, callback) =>
       callback(null, { MessageId: 123 }));
 
-    awsMock.mock('SQS', 'sendMessage', sendMessageSpy);
-    awsMock.mock('SQS', 'deleteMessage', deleteMessageSpy);
-    const sqs = new AWS.SQS();
+    const sqs = sqsMock(fakeTextMessages, {
+      sendCallback: sendMessageSpy,
+      deleteCallback: deleteMessageSpy
+    });
 
-    await sqsMove(
-      sqs,
-      'https://sqs.eu-west-1.amazonaws.com/123456789012/some-dead-letter-queue',
-      'https://sqs.eu-west-1.amazonaws.com/123456789012/some-original-queue',
-      1
-    );
+    await sqsMove(sqs, fakeFromQueueUrl, fakeToQueueUrl);
 
-    expect(sendMessageSpy.calledOnce).to.equal(true);
-    expect(deleteMessageSpy.calledOnce).to.equal(true);
+    expect(sendMessageSpy.callCount).to.equal(3);
+    expect(deleteMessageSpy.callCount).to.equal(3);
+  });
+
+  it('should move messages with text includes & excludes', async () => {
+    const sendMessageSpy = sinon.spy((params, callback) =>
+      callback(null, { MessageId: 123 }));
+    const deleteMessageSpy = sinon.spy((params, callback) =>
+      callback(null, { MessageId: 123 }));
+
+    const sqs = sqsMock(fakeTextMessages, {
+      sendCallback: sendMessageSpy,
+      deleteCallback: deleteMessageSpy
+    });
+
+    await sqsMove(sqs, fakeFromQueueUrl, fakeToQueueUrl, {
+      includes: 'message',
+      excludes: 'first',
+      json: false
+    });
+
+    expect(sendMessageSpy.callCount).to.equal(2);
+    expect(deleteMessageSpy.callCount).to.equal(2);
+  });
+
+  it('should move messages with object includes & excludes', async () => {
+    const sendMessageSpy = sinon.spy((params, callback) =>
+      callback(null, { MessageId: 123 }));
+    const deleteMessageSpy = sinon.spy((params, callback) =>
+      callback(null, { MessageId: 123 }));
+
+    const sqs = sqsMock(fakeJsonMessages, {
+      sendCallback: sendMessageSpy,
+      deleteCallback: deleteMessageSpy
+    });
+
+    await sqsMove(sqs, fakeFromQueueUrl, fakeToQueueUrl, {
+      includes: { 'user.country': 'BE' },
+      excludes: { 'user.name': 'Olivier' },
+      json: true
+    });
+
+    expect(sendMessageSpy.callCount).to.equal(1);
+    expect(deleteMessageSpy.callCount).to.equal(1);
   });
 });
