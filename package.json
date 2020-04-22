@@ -39,14 +39,14 @@
   ],
   "dependencies": {},
   "devDependencies": {
-    "aws-sdk": "^2.461.0",
-    "aws-sdk-mock": "^4.4.0",
+    "aws-sdk": "^2.659.0",
+    "aws-sdk-mock": "^5.1.0",
     "chai": "^4.2.0",
-    "coveralls": "^3.0.3",
-    "mocha": "^6.1.4",
-    "nyc": "^14.1.1",
-    "semistandard": "^13.0.1",
-    "sinon": "^7.3.2",
+    "coveralls": "^3.0.11",
+    "mocha": "^7.1.1",
+    "nyc": "^15.0.1",
+    "semistandard": "^14.2.0",
+    "sinon": "^9.0.2",
     "snazzy": "^8.0.0"
   },
   "semistandard": {

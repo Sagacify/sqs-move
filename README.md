@@ -28,15 +28,30 @@ sqs-move is a simple function.
 ### Signature
 
 ```js
-async function(sqsInstance, fromQueueUrl, toQueueUrl, batchSize = 1)
+async function(sqsInstance, fromQueueUrl, toQueueUrl, {
+  batchSize = 1,
+  includes = null,
+  excludes = null,
+  json = true
+} = {})
 ```
 
 **Notes:**
 
-- batchSize maximum is 10
-- sqsInstance is expected to be an AWS.SQS instance
+- `sqsInstance` is expected to be an AWS.SQS instance
+- `batchSize` maximum is 10
+- `includes` & `excludes` are expected to be criteria a string or a flat key/value object (see: advanced exemple)
+- `json` indicates if it is need to json parse message body on for includes and/or exlude
 
-### Example
+### More on includes excludes
+
+If it is a string then message is only going to be moved if the message contains (includes) or not contains (excludes) the string provided.
+
+If it is a key/value object then message is only going to be moved if the message contains (includes) or not contains (excludes) the key/value provided.
+You can includes/excludes on deep property using the flat keys.
+This `{ 'user.address.country': 'BE' }` will check in body if `body.user.address.country === 'BE'`.
+
+### Simple example
 
 ```js
 const AWS = require('aws-sdk');
@@ -51,9 +66,34 @@ const sqsInstance = new AWS.SQS({
 await sqsMove(
   sqsInstance,
   'https://sqs.eu-west-1.amazonaws.com/123456789012/some-dead-letter-queue',
-  'https://sqs.eu-west-1.amazonaws.com/123456789012/some-original-queue',
-  10
+  'https://sqs.eu-west-1.amazonaws.com/123456789012/some-original-queue'
 );
 
 console.log('All messages are back in original queue !');
+```
+
+### Advanced example
+
+```js
+const AWS = require('aws-sdk');
+const sqsMove = require('@sagacify/sqs-move');
+
+const sqsInstance = new AWS.SQS({
+  accessKeyId: 'some-aws-id',
+  secretAccessKey: 'some-aws-secret',
+  region: 'eu-west-1'
+});
+
+await sqsMove(
+  sqsInstance,
+  'https://sqs.eu-west-1.amazonaws.com/123456789012/some-dead-letter-queue',
+  'https://sqs.eu-west-1.amazonaws.com/123456789012/some-original-queue', {
+    batchSize: 10,
+    includes: { 'user.name': 'olivier' },
+    excludes: { 'user.country': 'BE' },
+    json: true
+  }
+);
+
+console.log('Some messages are back in original queue !');
 ```
