@@ -4,6 +4,8 @@
 [![Coverage Status](https://coveralls.io/repos/github/Sagacify/sqs-move/badge.svg?branch=master)](https://coveralls.io/github/Sagacify/sqs-move?branch=master)
 
 Moving SQS messages with ease.
+Messages MessageAttributes, MessageDeduplicationId & MessageGroupId will be preserved.
+Other Attributes will be lost.
 
 ## Motivation
 
@@ -32,6 +34,8 @@ async function(sqsInstance, fromQueueUrl, toQueueUrl, {
   batchSize = 1,
   includes = null,
   excludes = null,
+  transformBody = null,
+  transformMessageAttributes = null,
   json = true
 } = {})
 ```
@@ -41,7 +45,11 @@ async function(sqsInstance, fromQueueUrl, toQueueUrl, {
 - `sqsInstance` is expected to be an AWS.SQS instance
 - `batchSize` maximum is 10
 - `includes` & `excludes` are expected to be criteria a string or a flat key/value object (see: advanced exemple)
-- `json` indicates if it is need to json parse message body on for includes and/or exlude
+- `transformBody` a function that takes the message original  Body & *MessageAttributes as parameter and return a transformed body
+- `transformMessageAttributes` a function that takes the message original Body & *MessageAttributes as parameter and return a MessageAttributes body
+- `json` indicates if it is need to json parse message body on for includes and/or exclude
+
+*\* MessageAttributes is a simple map, it is automatically parsed and composed for you*
 
 ### More on includes excludes
 
@@ -91,6 +99,18 @@ await sqsMove(
     batchSize: 10,
     includes: { 'user.name': 'olivier' },
     excludes: { 'user.country': 'BE' },
+    transformBody: (body, messageAttributes) => {
+      body.user.country = 'US'
+      body.traceId = messageAttributes.traceId
+
+      return body;
+    },
+    transformMessageAttributes: (body, messageAttributes) => {
+      // Removes traceId from messageAttributes
+      const { traceId, ...newMessageAttributes} = messageAttributes
+
+      return newMessageAttributes;
+    },
     json: true
   }
 );
