@@ -37,16 +37,18 @@
     "moving",
     "messages"
   ],
-  "dependencies": {},
+  "dependencies": {
+    "lodash": "^4.17.20"
+  },
   "devDependencies": {
-    "aws-sdk": "^2.659.0",
+    "aws-sdk": "^2.735.0",
     "aws-sdk-mock": "^5.1.0",
     "chai": "^4.2.0",
-    "coveralls": "^3.0.11",
-    "mocha": "^7.1.1",
-    "nyc": "^15.0.1",
-    "semistandard": "^14.2.0",
-    "sinon": "^9.0.2",
+    "coveralls": "^3.1.0",
+    "mocha": "^8.1.1",
+    "nyc": "^15.1.0",
+    "semistandard": "^14.2.3",
+    "sinon": "^9.0.3",
     "snazzy": "^8.0.0"
   },
   "semistandard": {
