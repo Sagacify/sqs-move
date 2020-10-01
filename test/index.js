@@ -28,8 +28,9 @@ describe('SQS Move', () => {
       deleteCallback: deleteMessageSpy
     });
 
-    await sqsMove(sqs, fakeFromQueueUrl, fakeToQueueUrl);
+    const counts = await sqsMove(sqs, fakeFromQueueUrl, fakeToQueueUrl);
 
+    expect(counts).to.deep.equal({ movedCount: 3, filteredCount: 0 });
     expect(sendMessageSpy.callCount).to.equal(3);
     expect(deleteMessageSpy.callCount).to.equal(3);
   });
@@ -89,12 +90,13 @@ describe('SQS Move', () => {
       deleteCallback: deleteMessageSpy
     });
 
-    await sqsMove(sqs, fakeFromQueueUrl, fakeToQueueUrl, {
+    const counts = await sqsMove(sqs, fakeFromQueueUrl, fakeToQueueUrl, {
       includes: 'message',
       excludes: 'first',
       json: false
     });
 
+    expect(counts).to.deep.equal({ movedCount: 2, filteredCount: 1 });
     expect(sendMessageSpy.callCount).to.equal(2);
     expect(deleteMessageSpy.callCount).to.equal(2);
   });
@@ -105,12 +107,13 @@ describe('SQS Move', () => {
       deleteCallback: deleteMessageSpy
     });
 
-    await sqsMove(sqs, fakeFromQueueUrl, fakeToQueueUrl, {
+    const counts = await sqsMove(sqs, fakeFromQueueUrl, fakeToQueueUrl, {
       includes: { 'user.country': 'BE' },
       excludes: { 'user.name': 'Olivier' },
       json: true
     });
 
+    expect(counts).to.deep.equal({ movedCount: 1, filteredCount: 2 });
     expect(sendMessageSpy.callCount).to.equal(1);
     expect(deleteMessageSpy.callCount).to.equal(1);
   });
