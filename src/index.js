@@ -88,83 +88,96 @@ const move = async (sqsInstance, fromQueueUrl, toQueueUrl, options = {
     throw new Error('Parameter toQueueUrl is required');
   }
 
-  const response = await sqsInstance.receiveMessage(receiveOptions)
-    .promise();
-  if (!response.Messages) {
-    return null;
-  }
+  let isEmpty = false;
+  let movedCount = 0;
+  let filteredCount = 0;
 
-  for (const message of response.Messages) {
-    let isOk = true;
-    let messageBody = message.Body;
-    let messageAttributes = message.MessageAttributes || {};
+  while (!isEmpty) {
+    const response = await sqsInstance.receiveMessage(receiveOptions)
+      .promise();
 
-    if (includes || excludes || transformBody || transformMessageAttributes) {
-      const parsedBody = json
-        ? JSON.parse(message.Body)
-        : message.Body;
+    isEmpty = !response.Messages;
+    const messages = isEmpty ? [] : response.Messages;
 
-      isOk = (
-        !includes ||
-        partialCompare(cloneDeep(parsedBody), includes)
-      ) && (
-        !excludes ||
-        !partialCompare(cloneDeep(parsedBody), excludes)
-      );
+    for (const message of messages) {
+      let isOk = true;
+      let messageBody = message.Body;
+      let messageAttributes = message.MessageAttributes || {};
 
-      if (transformBody || transformMessageAttributes) {
-        const parsedMessageAttributes = parseMessageAttributes(messageAttributes);
+      if (includes || excludes || transformBody || transformMessageAttributes) {
+        const parsedBody = json
+          ? JSON.parse(message.Body)
+          : message.Body;
 
-        const transformedBody = transformBody
-          ? transformBody(
-            cloneDeep(parsedBody),
-            cloneDeep(parsedMessageAttributes)
-          )
-          : parsedBody;
+        isOk = (
+          !includes ||
+          partialCompare(cloneDeep(parsedBody), includes)
+        ) && (
+          !excludes ||
+          !partialCompare(cloneDeep(parsedBody), excludes)
+        );
 
-        const transformedMessageAttributes = transformMessageAttributes
-          ? transformMessageAttributes(
-            cloneDeep(parsedBody),
-            cloneDeep(parsedMessageAttributes)
-          )
-          : parsedMessageAttributes;
+        if (transformBody || transformMessageAttributes) {
+          const parsedMessageAttributes = parseMessageAttributes(messageAttributes);
 
-        messageAttributes = composeMessageAttributes(transformedMessageAttributes);
-        messageBody = json
-          ? JSON.stringify(transformedBody)
-          : transformedBody;
+          const transformedBody = transformBody
+            ? transformBody(
+              cloneDeep(parsedBody),
+              cloneDeep(parsedMessageAttributes)
+            )
+            : parsedBody;
+
+          const transformedMessageAttributes = transformMessageAttributes
+            ? transformMessageAttributes(
+              cloneDeep(parsedBody),
+              cloneDeep(parsedMessageAttributes)
+            )
+            : parsedMessageAttributes;
+
+          messageAttributes = composeMessageAttributes(transformedMessageAttributes);
+          messageBody = json
+            ? JSON.stringify(transformedBody)
+            : transformedBody;
+        }
+      }
+
+      if (isOk) {
+        const sendOptions = {
+          QueueUrl: toQueueUrl,
+          MessageBody: messageBody
+        };
+
+        if (Object.keys(messageAttributes).length > 0) {
+          sendOptions.MessageAttributes = messageAttributes;
+        }
+
+        if (message.Attributes && message.Attributes.MessageDeduplicationId) {
+          sendOptions.MessageDeduplicationId = message.Attributes.MessageDeduplicationId;
+        }
+
+        if (message.Attributes && message.Attributes.MessageGroupId) {
+          sendOptions.MessageGroupId = message.Attributes.MessageGroupId;
+        }
+
+        const deleteOptions = {
+          QueueUrl: fromQueueUrl,
+          ReceiptHandle: message.ReceiptHandle
+        };
+
+        await sqsInstance.sendMessage(sendOptions).promise();
+        await sqsInstance.deleteMessage(deleteOptions).promise();
+
+        movedCount++;
+      } else {
+        filteredCount++;
       }
     }
-
-    if (isOk) {
-      const sendOptions = {
-        QueueUrl: toQueueUrl,
-        MessageBody: messageBody
-      };
-
-      if (Object.keys(messageAttributes).length > 0) {
-        sendOptions.MessageAttributes = messageAttributes;
-      }
-
-      if (message.Attributes && message.Attributes.MessageDeduplicationId) {
-        sendOptions.MessageDeduplicationId = message.Attributes.MessageDeduplicationId;
-      }
-
-      if (message.Attributes && message.Attributes.MessageGroupId) {
-        sendOptions.MessageGroupId = message.Attributes.MessageGroupId;
-      }
-
-      const deleteOptions = {
-        QueueUrl: fromQueueUrl,
-        ReceiptHandle: message.ReceiptHandle
-      };
-
-      await sqsInstance.sendMessage(sendOptions).promise();
-      await sqsInstance.deleteMessage(deleteOptions).promise();
-    }
   }
 
-  return move(sqsInstance, fromQueueUrl, toQueueUrl, options);
+  return {
+    movedCount,
+    filteredCount
+  };
 };
 
 module.exports = move;

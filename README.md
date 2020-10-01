@@ -71,13 +71,13 @@ const sqsInstance = new AWS.SQS({
   region: 'eu-west-1'
 });
 
-await sqsMove(
+const { movedCount } = await sqsMove(
   sqsInstance,
   'https://sqs.eu-west-1.amazonaws.com/123456789012/some-dead-letter-queue',
-  'https://sqs.eu-west-1.amazonaws.com/123456789012/some-original-queue'
+  'https://sqs.eu-west-1.amazonaws.com/123456789012/some-process-queue'
 );
 
-console.log('All messages are back in original queue !');
+console.log(`${movedCount} messages are back in process queue !`);
 ```
 
 ### Advanced example
@@ -92,10 +92,10 @@ const sqsInstance = new AWS.SQS({
   region: 'eu-west-1'
 });
 
-await sqsMove(
+const { movedCount, filteredCount } = await sqsMove(
   sqsInstance,
   'https://sqs.eu-west-1.amazonaws.com/123456789012/some-dead-letter-queue',
-  'https://sqs.eu-west-1.amazonaws.com/123456789012/some-original-queue', {
+  'https://sqs.eu-west-1.amazonaws.com/123456789012/some-process-queue', {
     batchSize: 10,
     includes: { 'user.name': 'olivier' },
     excludes: { 'user.country': 'BE' },
@@ -115,5 +115,5 @@ await sqsMove(
   }
 );
 
-console.log('Some messages are back in original queue !');
+console.log(`${movedCount} messages are back in process queue & ${filteredCount} stayed in the deadletter queue !`);
 ```
