@@ -1,22 +1,46 @@
-const awsMock = require('aws-sdk-mock');
-const sqsMock = require('./mocks/sqs');
-const { expect } = require('chai');
-const sinon = require('sinon');
-const sqsMove = require('../src');
+import awsMock from 'aws-sdk-mock';
+import sqsMock from './mocks/sqs';
+import { expect } from 'chai';
+import sinon from 'sinon';
+import { sqsMove } from '../src/index';
+import { fakeTextMessages, fakeJsonMessages } from './mocks/sqsMessages';
+import type Sinon from 'sinon';
+import type { SQS } from 'aws-sdk';
 
-const { fakeTextMessages, fakeJsonMessages } = require('./mocks/sqsMessages');
-const fakeFromQueueUrl = 'https://sqs.eu-west-1.amazonaws.com/123456789012/some-dead-letter-queue';
-const fakeToQueueUrl = 'https://sqs.eu-west-1.amazonaws.com/123456789012/some-original-queue';
+const fakeFromQueueUrl =
+  'https://sqs.eu-west-1.amazonaws.com/123456789012/some-dead-letter-queue';
+const fakeToQueueUrl =
+  'https://sqs.eu-west-1.amazonaws.com/123456789012/some-original-queue';
 
 describe('SQS Move', () => {
-  let sendMessageSpy;
-  let deleteMessageSpy;
+  let deleteMessageSpy: Sinon.SinonSpy<
+    [
+      params: SQS.DeleteMessageRequest,
+      callback: (error: AWS.AWSError, data: Record<string, unknown>) => void
+    ],
+    (
+      params: SQS.DeleteMessageRequest,
+      callback: (error: AWS.AWSError, data: Record<string, unknown>) => void
+    ) => void
+  >;
+  let sendMessageSpy: Sinon.SinonSpy<
+    [
+      params: SQS.SendMessageRequest,
+      callback: (error: AWS.AWSError, data: Record<string, unknown>) => void
+    ],
+    (
+      params: SQS.SendMessageRequest,
+      callback: (error: AWS.AWSError, data: Record<string, unknown>) => void
+    ) => void
+  >;
 
   beforeEach(() => {
-    sendMessageSpy = sinon.spy((params, callback) =>
-      callback(null, { MessageId: 123 }));
-    deleteMessageSpy = sinon.spy((params, callback) =>
-      callback(null, { MessageId: 123 }));
+    sendMessageSpy = sinon.spy((_params, callback) =>
+      callback(null, { MessageId: 123 })
+    );
+    deleteMessageSpy = sinon.spy((_params, callback) =>
+      callback(null, { MessageId: 123 })
+    );
   });
   afterEach(() => {
     awsMock.restore('SQS');
@@ -125,7 +149,13 @@ describe('SQS Move', () => {
     });
 
     await sqsMove(sqs, fakeFromQueueUrl, fakeToQueueUrl, {
-      transformBody: (body, messageAttributes) => {
+      transformBody: (
+        body: {
+          user: Record<string, string>;
+          traceId: number | string | SQS.Binary;
+        },
+        messageAttributes
+      ) => {
         body.user.country = 'US';
         body.traceId = messageAttributes.traceId;
 
@@ -154,7 +184,10 @@ describe('SQS Move', () => {
     });
 
     await sqsMove(sqs, fakeFromQueueUrl, fakeToQueueUrl, {
-      transformMessageAttributes: (body, messageAttributes) => {
+      transformMessageAttributes: (
+        body: Record<string, Record<string, string>>,
+        messageAttributes
+      ) => {
         const newMessageAttributes = {
           ...messageAttributes,
           country: body.user.country

@@ -1,22 +1,26 @@
-module.exports.fakeTextMessages = [
+import type AWS from 'aws-sdk';
+
+export const fakeTextMessages: AWS.SQS.MessageList = [
   {
-    MessageId: 123,
+    MessageId: '123',
     ReceiptHandle: 'abc1',
     Body: 'first message'
-  }, {
-    MessageId: 124,
+  },
+  {
+    MessageId: '124',
     ReceiptHandle: 'abc2',
     Body: 'second message'
-  }, {
-    MessageId: 125,
+  },
+  {
+    MessageId: '125',
     ReceiptHandle: 'abc3',
     Body: 'third message'
   }
 ];
 
-module.exports.fakeJsonMessages = [
+export const fakeJsonMessages: AWS.SQS.MessageList = [
   {
-    MessageId: 123,
+    MessageId: '123',
     ReceiptHandle: 'abc1',
     Body: JSON.stringify({
       user: {
@@ -42,8 +46,9 @@ module.exports.fakeJsonMessages = [
         BinaryValue: Buffer.from('0101')
       }
     }
-  }, {
-    MessageId: 124,
+  },
+  {
+    MessageId: '124',
     ReceiptHandle: 'abc2',
     Body: JSON.stringify({
       user: {
@@ -61,8 +66,9 @@ module.exports.fakeJsonMessages = [
         StringValue: 't2'
       }
     }
-  }, {
-    MessageId: 125,
+  },
+  {
+    MessageId: '125',
     ReceiptHandle: 'abc3',
     Body: JSON.stringify({
       user: {
