@@ -1,3 +1,10 @@
+## [3.0.1](https://github.com/Sagacify/sqs-move/compare/v3.0.0...v3.0.1) (2021-09-09)
+
+
+### Bug Fixes
+
+* **tsconfig:** remove importHelpers ([026f054](https://github.com/Sagacify/sqs-move/commit/026f0546eb2badc81bb944acd56a3d19d87e0468))
+
 # [3.0.0](https://github.com/Sagacify/sqs-move/compare/v2.2.0...v3.0.0) (2021-09-07)
 
 
