@@ -91,7 +91,7 @@ import AWS from 'aws-sdk';
 import sqsMove from '@sagacify/sqs-move';
 // OR
 const AWS = require('aws-sdk');
-const sqsMove = require('@sagacify/sqs-move');
+const { sqsMove } = require('@sagacify/sqs-move');
 
 const sqsInstance = new AWS.SQS({
   accessKeyId: 'some-aws-id',
