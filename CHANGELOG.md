@@ -1,3 +1,10 @@
+## [3.0.2](https://github.com/Sagacify/sqs-move/compare/v3.0.1...v3.0.2) (2021-09-23)
+
+
+### Bug Fixes
+
+* **npm:** correct main entrypoint ([96eeda3](https://github.com/Sagacify/sqs-move/commit/96eeda3e2dca754950b74dde6bb3a0c0e2247a05))
+
 ## [3.0.1](https://github.com/Sagacify/sqs-move/compare/v3.0.0...v3.0.1) (2021-09-09)
 
 

@@ -1,6 +1,6 @@
 {
   "name": "@sagacify/sqs-move",
-  "version": "3.0.1",
+  "version": "3.0.2",
   "description": "Moving SQS messages with ease",
   "main": "build/index.js",
   "scripts": {
