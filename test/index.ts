@@ -1,11 +1,19 @@
-import awsMock from 'aws-sdk-mock';
+import { ParsedAttributeValue } from './../src/index';
 import sqsMock from './mocks/sqs';
 import { expect } from 'chai';
 import sinon from 'sinon';
 import { sqsMove } from '../src/index';
 import { fakeTextMessages, fakeJsonMessages } from './mocks/sqsMessages';
 import type Sinon from 'sinon';
-import type { SQS } from 'aws-sdk';
+import {
+  DeleteMessageCommand,
+  DeleteMessageCommandInput,
+  DeleteMessageCommandOutput,
+  SendMessageCommand,
+  SendMessageCommandInput,
+  SendMessageCommandOutput,
+  SQS
+} from '@aws-sdk/client-sqs';
 
 const fakeFromQueueUrl =
   'https://sqs.eu-west-1.amazonaws.com/123456789012/some-dead-letter-queue';
@@ -13,57 +21,47 @@ const fakeToQueueUrl =
   'https://sqs.eu-west-1.amazonaws.com/123456789012/some-original-queue';
 
 describe('SQS Move', () => {
-  let deleteMessageSpy: Sinon.SinonSpy<
-    [
-      params: SQS.DeleteMessageRequest,
-      callback: (error: AWS.AWSError, data: Record<string, unknown>) => void
-    ],
-    (
-      params: SQS.DeleteMessageRequest,
-      callback: (error: AWS.AWSError, data: Record<string, unknown>) => void
-    ) => void
-  >;
   let sendMessageSpy: Sinon.SinonSpy<
-    [
-      params: SQS.SendMessageRequest,
-      callback: (error: AWS.AWSError, data: Record<string, unknown>) => void
-    ],
-    (
-      params: SQS.SendMessageRequest,
-      callback: (error: AWS.AWSError, data: Record<string, unknown>) => void
-    ) => void
+    [SendMessageCommandInput],
+    SendMessageCommandOutput
   >;
+  let deleteMessageSpy: Sinon.SinonSpy<
+    [DeleteMessageCommandInput],
+    DeleteMessageCommandOutput
+  >;
+  const sendMessageCallback = (_input: SendMessageCommandInput) => ({
+    $metadata: {},
+    MessageId: '123'
+  });
+  const deleteMessageCallback = (_input: DeleteMessageCommandInput) => ({
+    $metadata: {}
+  });
 
   beforeEach(() => {
-    sendMessageSpy = sinon.spy((_params, callback) =>
-      callback(null, { MessageId: 123 })
-    );
-    deleteMessageSpy = sinon.spy((_params, callback) =>
-      callback(null, { MessageId: 123 })
-    );
-  });
-  afterEach(() => {
-    awsMock.restore('SQS');
+    sendMessageSpy = sinon.spy(sendMessageCallback);
+    deleteMessageSpy = sinon.spy(deleteMessageCallback);
   });
 
   it('should move message from queue to queue', async () => {
-    const sqs = sqsMock(fakeTextMessages, {
-      sendCallback: sendMessageSpy,
-      deleteCallback: deleteMessageSpy
-    });
+    const sqs = new SQS({});
+    const mock = sqsMock(fakeTextMessages, sqs);
+    mock.on(SendMessageCommand).callsFake(sendMessageSpy);
+    mock.on(DeleteMessageCommand).callsFake(deleteMessageSpy);
 
     const counts = await sqsMove(sqs, fakeFromQueueUrl, fakeToQueueUrl);
 
     expect(counts).to.deep.equal({ movedCount: 3, filteredCount: 0 });
     expect(sendMessageSpy.callCount).to.equal(3);
     expect(deleteMessageSpy.callCount).to.equal(3);
+
+    mock.reset();
   });
 
   it('should preserve MessageAttributes, MessageDeduplicationId & MessageGroupId', async () => {
-    const sqs = sqsMock(fakeJsonMessages, {
-      sendCallback: sendMessageSpy,
-      deleteCallback: deleteMessageSpy
-    });
+    const sqs = new SQS({});
+    const mock = sqsMock(fakeJsonMessages, sqs);
+    mock.on(SendMessageCommand).callsFake(sendMessageSpy);
+    mock.on(DeleteMessageCommand).callsFake(deleteMessageSpy);
 
     await sqsMove(sqs, fakeFromQueueUrl, fakeToQueueUrl);
 
@@ -109,10 +107,10 @@ describe('SQS Move', () => {
   });
 
   it('should move messages with text includes & excludes', async () => {
-    const sqs = sqsMock(fakeTextMessages, {
-      sendCallback: sendMessageSpy,
-      deleteCallback: deleteMessageSpy
-    });
+    const sqs = new SQS({});
+    const mock = sqsMock(fakeTextMessages, sqs);
+    mock.on(SendMessageCommand).callsFake(sendMessageSpy);
+    mock.on(DeleteMessageCommand).callsFake(deleteMessageSpy);
 
     const counts = await sqsMove(sqs, fakeFromQueueUrl, fakeToQueueUrl, {
       includes: 'message',
@@ -126,10 +124,10 @@ describe('SQS Move', () => {
   });
 
   it('should move messages with object includes & excludes', async () => {
-    const sqs = sqsMock(fakeJsonMessages, {
-      sendCallback: sendMessageSpy,
-      deleteCallback: deleteMessageSpy
-    });
+    const sqs = new SQS({});
+    const mock = sqsMock(fakeJsonMessages, sqs);
+    mock.on(SendMessageCommand).callsFake(sendMessageSpy);
+    mock.on(DeleteMessageCommand).callsFake(deleteMessageSpy);
 
     const counts = await sqsMove(sqs, fakeFromQueueUrl, fakeToQueueUrl, {
       includes: { 'user.country': 'BE' },
@@ -143,16 +141,16 @@ describe('SQS Move', () => {
   });
 
   it('should move messages with transformBody', async () => {
-    const sqs = sqsMock(fakeJsonMessages, {
-      sendCallback: sendMessageSpy,
-      deleteCallback: deleteMessageSpy
-    });
+    const sqs = new SQS({});
+    const mock = sqsMock(fakeJsonMessages, sqs);
+    mock.on(SendMessageCommand).callsFake(sendMessageSpy);
+    mock.on(DeleteMessageCommand).callsFake(deleteMessageSpy);
 
     await sqsMove(sqs, fakeFromQueueUrl, fakeToQueueUrl, {
       transformBody: (
         body: {
           user: Record<string, string>;
-          traceId: number | string | SQS.Binary;
+          traceId: ParsedAttributeValue;
         },
         messageAttributes
       ) => {
@@ -178,10 +176,10 @@ describe('SQS Move', () => {
   });
 
   it('should move messages with transformMessageAttributes', async () => {
-    const sqs = sqsMock(fakeJsonMessages, {
-      sendCallback: sendMessageSpy,
-      deleteCallback: deleteMessageSpy
-    });
+    const sqs = new SQS({});
+    const mock = sqsMock(fakeJsonMessages, sqs);
+    mock.on(SendMessageCommand).callsFake(sendMessageSpy);
+    mock.on(DeleteMessageCommand).callsFake(deleteMessageSpy);
 
     await sqsMove(sqs, fakeFromQueueUrl, fakeToQueueUrl, {
       transformMessageAttributes: (

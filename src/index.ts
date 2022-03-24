@@ -1,5 +1,8 @@
-import { SQS } from 'aws-sdk';
-import { Binary } from 'aws-sdk/clients/sqs';
+import {
+  MessageAttributeValue,
+  SendMessageRequest,
+  SQS
+} from '@aws-sdk/client-sqs';
 import { cloneDeep, get } from 'lodash';
 
 const partialCompare = (
@@ -15,17 +18,13 @@ const partialCompare = (
   return Object.keys(criteria).some((key) => get(body, key) === criteria[key]);
 };
 
+export type ParsedAttributeValue = number | string | Buffer | Uint8Array;
+
 const composeMessageAttributes = (
-  attributes: Record<string, number | string | SQS.Binary>
+  attributes: Record<string, ParsedAttributeValue>
 ) =>
   Object.keys(attributes).reduce(
-    (
-      result: Record<
-        string,
-        { DataType: string; StringValue?: string; BinaryValue?: Buffer }
-      >,
-      key: string
-    ) => {
+    (result: Record<string, MessageAttributeValue>, key: string) => {
       const attributeValue = attributes[key];
 
       if (typeof attributeValue === 'string') {
@@ -39,7 +38,10 @@ const composeMessageAttributes = (
           StringValue: attributeValue.toString(),
           DataType: 'Number'
         };
-      } else if (attributeValue instanceof Buffer) {
+      } else if (
+        attributeValue instanceof Buffer ||
+        attributeValue instanceof Uint8Array
+      ) {
         result[key] = {
           BinaryValue: attributeValue,
           DataType: 'Binary'
@@ -53,9 +55,11 @@ const composeMessageAttributes = (
     {}
   );
 
-const parseMessageAttributes = (attributes: SQS.MessageBodyAttributeMap) =>
+const parseMessageAttributes = (
+  attributes: Record<string, MessageAttributeValue>
+) =>
   Object.keys(attributes).reduce(
-    (result: Record<string, number | string | Binary>, key) => {
+    (result: Record<string, ParsedAttributeValue>, key) => {
       const attribute = attributes[key];
 
       switch (attribute.DataType) {
@@ -87,12 +91,12 @@ interface SqsMoveOptions {
   excludes?: string | Record<string, unknown>;
   transformBody?: (
     body: string | Record<string, unknown>,
-    messageAttributes: Record<string, number | string | SQS.Binary>
+    messageAttributes: Record<string, ParsedAttributeValue>
   ) => string | Record<string, unknown>;
   transformMessageAttributes?: (
     body: string | Record<string, unknown>,
-    messageAttributes: Record<string, number | string | SQS.Binary>
-  ) => Record<string, number | string | SQS.Binary>;
+    messageAttributes: Record<string, ParsedAttributeValue>
+  ) => Record<string, ParsedAttributeValue>;
   json: boolean;
 }
 
@@ -102,7 +106,7 @@ const SqsMoveOptionsDefaults: SqsMoveOptions = {
 };
 
 export async function sqsMove(
-  sqsInstance: AWS.SQS,
+  sqsInstance: SQS,
   fromQueueUrl: string,
   toQueueUrl: string,
   options: Partial<SqsMoveOptions> = {}
@@ -138,7 +142,7 @@ export async function sqsMove(
   let filteredCount = 0;
 
   while (true) {
-    const response = await sqsInstance.receiveMessage(receiveOptions).promise();
+    const response = await sqsInstance.receiveMessage(receiveOptions);
 
     if (!Array.isArray(response.Messages)) {
       break;
@@ -190,7 +194,7 @@ export async function sqsMove(
       }
 
       if (shouldMove) {
-        const sendOptions: SQS.SendMessageRequest = {
+        const sendOptions: SendMessageRequest = {
           QueueUrl: toQueueUrl,
           MessageBody: messageBody
         };
@@ -213,8 +217,8 @@ export async function sqsMove(
           ReceiptHandle: message.ReceiptHandle
         };
 
-        await sqsInstance.sendMessage(sendOptions).promise();
-        await sqsInstance.deleteMessage(deleteOptions).promise();
+        await sqsInstance.sendMessage(sendOptions);
+        await sqsInstance.deleteMessage(deleteOptions);
 
         movedCount++;
       } else {
