@@ -1,41 +1,30 @@
-import AWSMock from 'aws-sdk-mock';
-import AWS, { SQS } from 'aws-sdk';
-
-type Options = {
-  sendCallback?: (
-    params: AWS.SQS.SendMessageRequest,
-    callback: (error: AWS.AWSError, data: Record<string, unknown>) => void
-  ) => void;
-  deleteCallback?: (
-    params: AWS.SQS.DeleteMessageRequest,
-    callback: (error: AWS.AWSError, data: Record<string, unknown>) => void
-  ) => void;
-};
+import { AwsStub, mockClient } from 'aws-sdk-client-mock';
+import {
+  Message,
+  ReceiveMessageCommand,
+  ServiceInputTypes,
+  ServiceOutputTypes,
+  SQSClient
+} from '@aws-sdk/client-sqs';
 
 export default (
-  messages: SQS.MessageList,
-  { sendCallback, deleteCallback }: Options = {}
-): AWS.SQS => {
+  messages: Array<Message>,
+  sqsClient: SQSClient
+): AwsStub<ServiceInputTypes, ServiceOutputTypes> => {
   let receiveCount = 0;
 
-  AWSMock.mock('SQS', 'receiveMessage', (_params, callback) => {
-    const RequestId = `r${receiveCount + 1}`;
+  const sqsMock = mockClient(sqsClient);
 
-    if (receiveCount >= messages.length) {
-      // Simulate empty queue
-      callback(null, { ResponseMetadata: { RequestId } });
-    }
+  sqsMock.on(ReceiveMessageCommand).callsFake(() => {
+    const result = {
+      $metadata: { requestId: `r${receiveCount + 1}` },
+      Messages:
+        receiveCount >= messages.length ? undefined : [messages[receiveCount]]
+    };
+    receiveCount += 1;
 
-    callback(null, {
-      ResponseMetadata: { RequestId },
-      Messages: [messages[receiveCount]]
-    });
-
-    receiveCount++;
+    return result;
   });
 
-  AWSMock.mock('SQS', 'sendMessage', sendCallback);
-  AWSMock.mock('SQS', 'deleteMessage', deleteCallback);
-
-  return new AWS.SQS();
+  return sqsMock;
 };

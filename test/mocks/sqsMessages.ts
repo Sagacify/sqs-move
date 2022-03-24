@@ -1,6 +1,6 @@
-import type AWS from 'aws-sdk';
+import { Message } from '@aws-sdk/client-sqs';
 
-export const fakeTextMessages: AWS.SQS.MessageList = [
+export const fakeTextMessages: Array<Message> = [
   {
     MessageId: '123',
     ReceiptHandle: 'abc1',
@@ -18,7 +18,7 @@ export const fakeTextMessages: AWS.SQS.MessageList = [
   }
 ];
 
-export const fakeJsonMessages: AWS.SQS.MessageList = [
+export const fakeJsonMessages: Array<Message> = [
   {
     MessageId: '123',
     ReceiptHandle: 'abc1',
